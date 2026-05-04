@@ -744,7 +744,7 @@ end
 
 Players.PlayerAdded:Connect(function(p)
     watchOwnerChat(p)
-end)a
+end)
 
 -- ── FakeHRP sync: Heartbeat (positional, must remain per-frame) ───────────────
 RunService.Heartbeat:Connect(function()
