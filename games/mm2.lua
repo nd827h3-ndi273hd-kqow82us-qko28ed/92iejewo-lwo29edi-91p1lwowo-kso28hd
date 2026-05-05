@@ -1,5 +1,5 @@
 -- LocalScript: StarterPlayerScripts
-print("V2.109.256")
+print("V2.110.257")
 if _G.__ShadowX_Running then return end
 _G.__ShadowX_Running = true
 
@@ -860,6 +860,23 @@ local function getAimPosition()
         lead = LEAD_VSLOW
     else
         lead = 0
+    end
+
+    if lead > 0 then
+        local lv = hrp.CFrame.LookVector
+        local lvH = Vector3.new(lv.X, 0, lv.Z)
+        if lvH.Magnitude > 0 then
+            lvH = lvH.Unit
+            rayParams.FilterDescendantsInstances = { myChar, char }
+            local wallHit = Workspace:Raycast(pos, lvH * (lead + 1), rayParams)
+            if wallHit and wallHit.Distance <= lead then
+                if wallHit.Distance < 1 then
+                    lead = 0
+                else
+                    lead = wallHit.Distance - 1
+                end
+            end
+        end
     end
 
     local hOffset = hUnit * lead
