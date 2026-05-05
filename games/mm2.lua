@@ -824,15 +824,15 @@ local function getAimPosition()
         return target
     end
 
-    local LEAD_VFAST = 4.8
-    local LEAD_FAST  = 4.6
+    local LEAD_VFAST = 4.7
+    local LEAD_FAST  = 4.5
     local LEAD_SLOW  = 2.5
     local LEAD_SSLOW = 1.5
     local LEAD_VSLOW = 1
 
     local hUnit = hVel.Magnitude > 0 and hVel.Unit or Vector3.zero
     local lead
-    if speed >= 17.5 then
+    if speed >= 17.8 then
         lead = LEAD_VFAST
     elseif speed >= 15.8 then
         lead = LEAD_FAST
@@ -913,7 +913,7 @@ local function getAimPosition()
             return cPos
         end
     end
-    -- << DEBUG_AIM (delete from here to >> DEBUG_AIM to remove)
+    
     do
         local wallCnt = 0
         for i = 1, #candidates do
@@ -1890,8 +1890,8 @@ do
     addLine(".tp username — Teleports you to the target, partial name supports ex. .tp jv full user is jvpogi233j")
 
     addSection("AUTO FEATURES")
-    addLine("Walk speed is locked to 19. (org. 17)")
-    addLine("Jump power is locked to 55. (org. 50)")
+    addLine("Walk speed is locked to 18. (org. 17)")
+    addLine("Jump power is locked to 53. (org. 50)")
     addLine("Silent aim not an aimbot so camera is not locked to the murderer on left-click or tap with smart movement prediction.")
     addLine("Auto killall triggers after 20 seconds idle as Murderer.")
 
