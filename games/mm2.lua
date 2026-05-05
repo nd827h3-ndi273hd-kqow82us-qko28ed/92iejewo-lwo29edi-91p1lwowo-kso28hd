@@ -1,4 +1,4 @@
-print("V2.112.259")
+print("V2.112.260")
 if _G.__ShadowX_Running then return end
 _G.__ShadowX_Running = true
 
@@ -118,17 +118,17 @@ local function setJumpPower(char)
     local hum = char:FindFirstChildOfClass("Humanoid")
     if hum then
         hum.UseJumpPower = true
-        hum.JumpPower    = 54
+        hum.JumpPower    = 53
         hum:GetPropertyChangedSignal("JumpPower"):Connect(function()
-            if hum.JumpPower ~= 54 then hum.JumpPower = 54 end
+            if hum.JumpPower ~= 53 then hum.JumpPower = 53 end
         end)
     else
         char.ChildAdded:Connect(function(child)
             if child:IsA("Humanoid") then
                 child.UseJumpPower = true
-                child.JumpPower    = 54
+                child.JumpPower    = 53
                 child:GetPropertyChangedSignal("JumpPower"):Connect(function()
-                    if child.JumpPower ~= 54 then child.JumpPower = 54 end
+                    if child.JumpPower ~= 53 then child.JumpPower = 53 end
                 end)
             end
         end)
@@ -994,11 +994,10 @@ UIS.InputEnded:Connect(function(input, processed)
                    and not UIS:GetFocusedTextBox()
                    and input.Position.X > (workspace.CurrentCamera.ViewportSize.X * 0.35))
     if not isFire then return end
-    if touchStartPos then
-        local delta = (Vector2.new(input.Position.X, input.Position.Y) - Vector2.new(touchStartPos.X, touchStartPos.Y)).Magnitude
-        if delta > 12 then touchStartPos = nil return end
-    end
+    if not touchStartPos then return end
+    local delta = (Vector2.new(input.Position.X, input.Position.Y) - Vector2.new(touchStartPos.X, touchStartPos.Y)).Magnitude
     touchStartPos = nil
+    if delta > 12 then return end
     local myChar = lp.Character
     local myHRP  = myChar and myChar:FindFirstChild("HumanoidRootPart")
     if not myHRP then return end
