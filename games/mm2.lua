@@ -1,4 +1,4 @@
-print("V2.112.262")
+print("V2.112.263")
 if _G.__ShadowX_Running then return end
 _G.__ShadowX_Running = true
 
@@ -1434,9 +1434,9 @@ local function SkidFling(target)
     end
 
     local function fPos(bp, pos, ang)
-        hum:MoveTo((CFrame.new(bp.Position) * pos * ang).Position)
-        hrp.Velocity    = Vector3.new(9e7, 9e7 * 10, 9e7)
-        hrp.RotVelocity = Vector3.new(9e8, 9e8, 9e8)
+        hrp.CFrame                    = CFrame.new(bp.Position) * pos * ang
+        hrp.AssemblyLinearVelocity    = Vector3.new(9e7, 9e7 * 10, 9e7)
+        hrp.AssemblyAngularVelocity   = Vector3.new(9e8, 9e8, 9e8)
     end
 
     local function sfPart(bp)
@@ -1465,7 +1465,7 @@ local function SkidFling(target)
                 fPos(bp, CFrame.new(0, -1.5, 0), CFrame.Angles(math.rad(-90), 0, 0)) task.wait()
                 fPos(bp, CFrame.new(0, -1.5, 0), CFrame.Angles(0, 0, 0))             task.wait()
             end
-        until bp.Velocity.Magnitude > 500
+        until bp.AssemblyLinearVelocity.Magnitude > 500
             or bp.Parent ~= tChar
             or target.Parent ~= Players
             or tHum.Sit
@@ -1480,7 +1480,8 @@ local function SkidFling(target)
     bv.Parent   = hrp
     bv.Velocity = Vector3.new(9e8, 9e8, 9e8)
     bv.MaxForce = Vector3.new(1/0, 1/0, 1/0)
-
+    bv.P        = math.huge
+    
     hum:SetStateEnabled(Enum.HumanoidStateType.Seated, false)
 
     if tHRP and tHead then
@@ -1501,8 +1502,8 @@ local function SkidFling(target)
         hum:ChangeState("GettingUp")
         for _, v in ipairs(char:GetChildren()) do
             if v:IsA("BasePart") then
-                v.Velocity    = Vector3.new()
-                v.RotVelocity = Vector3.new()
+                v.AssemblyLinearVelocity  = Vector3.new()
+                v.AssemblyAngularVelocity = Vector3.new()
             end
         end
         task.wait()
