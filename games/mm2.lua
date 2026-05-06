@@ -1421,46 +1421,33 @@ local function runAutofarm()
 
             local servers = getCoinServers()
             while autofarmActive and roundActive do
+                local dt = RunService.Heartbeat:Wait()
                 local h = lp.Character and lp.Character:FindFirstChild("HumanoidRootPart")
                 if not h then break end
-                local cur = nil
-                local curDist = math.huge
+                local nearest = nil
+                local nearDist = math.huge
                 for _, cs in ipairs(servers) do
                     if cs.Parent and coinHasVisual(cs) then
                         local d = (cs.Position - h.Position).Magnitude
-                        if d < curDist then cur = cs curDist = d end
+                        if d < nearDist then nearest = cs nearDist = d end
                     end
                 end
-                if not cur then break end
-                while autofarmActive and roundActive do
-                    local dt = RunService.Heartbeat:Wait()
+                if not nearest then break end
+                if nearDist <= 4 then
+                    task.wait(0.1)
                     local h2 = lp.Character and lp.Character:FindFirstChild("HumanoidRootPart")
-                    if not h2 then break end
-                    local nearest = nil
-                    local nearDist = math.huge
-                    for _, cs in ipairs(servers) do
-                        if cs.Parent and coinHasVisual(cs) then
-                            local d = (cs.Position - h2.Position).Magnitude
-                            if d < nearDist then nearest = cs nearDist = d end
-                        end
-                    end
-                    if not nearest then break end
-                    if nearDist <= 4 then
-                        task.wait(0.1)
-                        local h3 = lp.Character and lp.Character:FindFirstChild("HumanoidRootPart")
-                        if h3 then pcall(firetouchinterest, nearest, h3, 0) end
-                        break
-                    end
+                    if h2 then pcall(firetouchinterest, nearest, h2, 0) end
+                else
                     local step = 50 * dt
-                    local dir = nearest.Position - h2.Position
+                    local dir = nearest.Position - h.Position
                     if dir.Magnitude <= step then
-                        h2.CFrame = CFrame.new(nearest.Position)
+                        h.CFrame = CFrame.new(nearest.Position)
                     else
-                        h2.CFrame = CFrame.new(h2.Position + dir.Unit * step)
+                        h.CFrame = CFrame.new(h.Position + dir.Unit * step)
                     end
                 end
             end
-
+            
             if not autofarmActive then break end
 
             if isLpMurd then
@@ -1468,7 +1455,6 @@ local function runAutofarm()
                     pcall(doKillAll)
                     task.wait(3)
                 end
-
             elseif isLpSheriff then
                 local c2 = lp.Character
                 local h2 = c2 and c2:FindFirstChild("HumanoidRootPart")
