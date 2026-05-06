@@ -327,6 +327,16 @@ local function updateLpVisualFor(p)
 end
 
 local applyRole
+local pendingApplyRole = {}
+
+local function scheduleApplyRole(p)
+    if pendingApplyRole[p] then return end
+    pendingApplyRole[p] = true
+    task.defer(function()
+        pendingApplyRole[p] = nil
+        applyRole(p)
+    end)
+end
 
 local function endRound()
     if not roundActive then return end
@@ -466,12 +476,12 @@ local function watchContainer(p, container, forLp)
     else
         container.ChildAdded:Connect(function(child)
             if child.Name == "Knife" or child.Name == "Gun" then
-                task.defer(function() applyRole(p) end)
+                scheduleApplyRole(p)
             end
         end)
         container.ChildRemoved:Connect(function(child)
             if child.Name == "Knife" or child.Name == "Gun" then
-                task.defer(function() applyRole(p) end)
+                scheduleApplyRole(p)
             end
         end)
     end
@@ -696,6 +706,7 @@ Players.PlayerRemoving:Connect(function(p)
     roles[p]          = nil
     stickyRoles[p]    = nil
     velSmooth[p]      = nil
+    pendingApplyRole[p]  = nil
     removeLpVisual(p)
     removeVisuals(p)
     if murderer == p then
@@ -1573,6 +1584,14 @@ local function doShootMurd()
             local myChar = lp.Character
             local myHRP  = myChar and myChar:FindFirstChild("HumanoidRootPart")
             if not myHRP then task.wait(0.1) continue end
+            if not myChar:FindFirstChild("Gun") then
+                local bp = lp:FindFirstChild("Backpack")
+                local bpGun = bp and bp:FindFirstChild("Gun")
+                if bpGun then
+                    local hum = myChar:FindFirstChildOfClass("Humanoid")
+                    if hum then pcall(function() hum:EquipTool(bpGun) end) end
+                end
+            end
             myHRP.CFrame = CFrame.new(mHRP.Position + mHRP.CFrame.LookVector * 15, mHRP.Position)
             local aimPos = getAimPosition() or mHRP.Position
             local remote = getShootRemote()
@@ -1996,7 +2015,7 @@ for _, desc in ipairs(Workspace:GetDescendants()) do
     end
 end
 if gunDropped and innocentGui then
-    innocentGui.Enabled = not isLpMurd
+    innocentGui.Enabled = not isLpMurd and (playersInRound[lp] ~= nil)
 end
 
 Workspace.DescendantRemoving:Connect(function(desc)
@@ -2075,40 +2094,6 @@ RunService.Heartbeat:Connect(function()
             lpLastActiveTime = tick()
             local ok, err = pcall(doKillAll)
             if not ok then warn("[ShadowX] AutoKillAll: " .. tostring(err)) end
-        end
-    elseif isLpSheriff then
-        if murderer and murderer.Character then
-            local mChar  = murderer.Character
-            local mHRP   = mChar:FindFirstChild("HumanoidRootPart")
-            local mKnife = mChar:FindFirstChild("Knife")
-            if mHRP and mKnife and (mHRP.Position - hrp.Position).Magnitude <= 10 then
-                rayParams.FilterDescendantsInstances = { char, mChar }
-                local los = Workspace:Raycast(hrp.Position, mHRP.Position - hrp.Position, rayParams)
-                los = not los or los.Instance:IsDescendantOf(mChar)
-                if los then
-                    if not char:FindFirstChild("Gun") then
-                        local bp    = lp:FindFirstChild("Backpack")
-                        local bpGun = bp and bp:FindFirstChild("Gun")
-                        if bpGun then
-                            local hum = char:FindFirstChildOfClass("Humanoid")
-                            if hum then
-                                pcall(function() hum:EquipTool(bpGun) end)
-                            end
-                        end
-                    end
-                    local now = tick()
-                    if now - lpSheriffLastShot >= 0.15 then
-                        lpSheriffLastShot = now
-                        local aimPos = getAimPosition()
-                        local remote = getShootRemote()
-                        if aimPos and remote then
-                            pcall(function()
-                                remote:FireServer(CFrame.new(hrp.Position, aimPos), CFrame.new(aimPos))
-                            end)
-                        end
-                    end
-                end
-            end
         end
     end
 end)
