@@ -309,6 +309,9 @@ local function getRole(p)
         or (bp      and bp:FindFirstChild("Gun"))
         or (wsModel and wsModel:FindFirstChild("Gun"))
     if hasGun then
+        if not roundActive and stickyRoles[p] == "hero" then
+            return "hero"
+        end
         local role = gunDropped and "hero" or "sheriff"
         stickyRoles[p] = role
         return role
