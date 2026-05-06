@@ -1264,7 +1264,7 @@ local function parseTimer(text)
 end
 
 local function freezeAbove(hrp)
-    hrp.CFrame = CFrame.new(hrp.Position + Vector3.new(0, 200, 0))
+    hrp.CFrame = CFrame.new(hrp.Position + Vector3.new(0, 150, 0))
 end
 
 local function waitUntilTimer(secs, guard)
@@ -1434,8 +1434,7 @@ local function SkidFling(target)
     end
 
     local function fPos(bp, pos, ang)
-        hrp.CFrame = CFrame.new(bp.Position) * pos * ang
-        char:SetPrimaryPartCFrame(CFrame.new(bp.Position) * pos * ang)
+        hrp.CFrame      = CFrame.new(bp.Position) * pos * ang
         hrp.Velocity    = Vector3.new(9e7, 9e7 * 10, 9e7)
         hrp.RotVelocity = Vector3.new(9e8, 9e8, 9e8)
     end
