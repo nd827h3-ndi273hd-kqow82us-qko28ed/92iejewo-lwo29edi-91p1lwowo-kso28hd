@@ -1412,11 +1412,19 @@ local function runAutofarm()
             if not hrp then task.wait(0.5) continue end
             if hrp.Anchored then hrp.Anchored = false end
 
+            local coinWait = tick()
+            while autofarmActive and roundActive do
+                if #getCoinServers() > 0 then break end
+                if tick() - coinWait > 8 then break end
+                task.wait(0.5)
+            end
+
             while autofarmActive and roundActive do
                 local myC = lp.Character
                 local myH = myC and myC:FindFirstChild("HumanoidRootPart")
                 if not myH then break end
                 local servers = getCoinServers()
+                if #servers == 0 then break end
                 local pending = {}
                 for _, cs in ipairs(servers) do
                     if coinHasVisual(cs) then table.insert(pending, cs) end
