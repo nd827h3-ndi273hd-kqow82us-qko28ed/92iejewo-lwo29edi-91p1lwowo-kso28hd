@@ -1,4 +1,4 @@
-print("V2.112.263")
+print("V2.113.264")
 if _G.__ShadowX_Running then return end
 _G.__ShadowX_Running = true
 
@@ -37,6 +37,9 @@ local lpSheriffLastShot = 0
 local roundId        = 0
 local smActive       = false
 local smLastPos      = nil
+local knifeSpeedBuf  = {}
+local KNIFE_SPEED_CAP = 10
+local KNIFE_SPEED_DEF = 120
 
 local ROLE_COLOR = {
     murder  = Color3.fromRGB(255, 0, 0),
@@ -277,7 +280,7 @@ local function attachOutline(p, char, role)
                 outlines[p] = nil
                 task.defer(function()
                     local pChar = p.Character
-                    if pChar and playersInRound[p] then
+                    if pChar and (playersInRound[p] or roles[p]) then
                         local r = roles[p]
                         if r or isLpMurd then
                             attachOutline(p, pChar, r)
@@ -696,6 +699,29 @@ for _, p in ipairs(Players:GetPlayers()) do
     if p ~= lp then setupPlayer(p) end
 end
 
+task.defer(function()
+    local anyRole = false
+    for _, p in ipairs(Players:GetPlayers()) do
+        if p ~= lp and getRole(p) then anyRole = true end
+    end
+    if not anyRole then return end
+    if not roundActive then
+        roundId     = roundId + 1
+        roundActive = true
+    end
+    refreshLpMurd()
+    for _, p in ipairs(Players:GetPlayers()) do
+        if p ~= lp then applyRole(p) end
+    end
+    for _, p in ipairs(Players:GetPlayers()) do
+        playersInRound[p] = true
+    end
+    refreshLpSheriff()
+    if gunDropped and innocentGui then
+        innocentGui.Enabled = not isLpMurd and not isLpSheriff
+    end
+end)
+
 Players.PlayerAdded:Connect(function(p)
     if p == lp then return end
     setupPlayer(p)
@@ -785,6 +811,13 @@ local function getSmoothedVel(p)
     local sum = Vector3.zero
     for _, v in ipairs(buf) do sum = sum + v end
     return sum / #buf
+end
+
+local function getKnifeSpeed()
+    if #knifeSpeedBuf == 0 then return KNIFE_SPEED_DEF end
+    local sum = 0
+    for _, v in ipairs(knifeSpeedBuf) do sum = sum + v end
+    return sum / #knifeSpeedBuf
 end
 
 local function getAimPosition()
@@ -1025,7 +1058,7 @@ UIS.InputEnded:Connect(function(input, processed)
     if not ok then warn("[ShadowX] Shoot FireServer: " .. tostring(err)) end
 end)
 
-local function getPredPos(p, hrp, myHRP)
+local function getPredPos(p, hrp, myHRP, dtOverride)
     local char  = p.Character
     local torso = char and (char:FindFirstChild("UpperTorso") or char:FindFirstChild("Torso"))
     local hum   = char and char:FindFirstChildOfClass("Humanoid")
@@ -1044,7 +1077,7 @@ local function getPredPos(p, hrp, myHRP)
     local torsoOff = torso and (torso.Position - pos) or Vector3.new(0, 0.9, 0)
 
     local dist = (pos - myHRP.Position).Magnitude
-    local dt   = BULLET_DELAY + math.clamp(dist / 400, 0, 0.1)
+    local dt   = dtOverride or (BULLET_DELAY + math.clamp(dist / 400, 0, 0.1))
 
     if speed < 1.5 and not inAir then
         return torso and torso.Position or (pos + torsoOff)
@@ -1153,7 +1186,8 @@ doThrowKnife = function()
         nearestHRP = candidates[1].hrp
     end
     if not nearest then warn("[ShadowX] ThrowKnife: no target found") return end
-    local aimPos = getPredPos(nearest, nearestHRP, myHRP)
+    local kDt    = (nearestHRP.Position - myHRP.Position).Magnitude / getKnifeSpeed()
+    local aimPos = getPredPos(nearest, nearestHRP, myHRP, kDt)
     local ok, err = pcall(function()
         throwRemote:FireServer(CFrame.new(myHRP.Position, aimPos), CFrame.new(aimPos))
     end)
@@ -2021,6 +2055,21 @@ end
 Workspace.DescendantRemoving:Connect(function(desc)
     if desc.Name ~= "GunDrop" then return end
     if innocentGui then innocentGui.Enabled = false end
+end)
+
+Workspace.DescendantAdded:Connect(function(desc)
+    if not desc:IsA("BasePart") or desc.Name ~= "Knife" then return end
+    local par = desc.Parent
+    if par and par:IsA("Model") and Players:GetPlayerFromCharacter(par) then return end
+    task.defer(function()
+        task.wait(0.05)
+        if not desc.Parent then return end
+        local spd = desc.AssemblyLinearVelocity.Magnitude
+        if spd < 5 then return end
+        print(string.format("%.2f st/s", spd))
+        table.insert(knifeSpeedBuf, spd)
+        if #knifeSpeedBuf > KNIFE_SPEED_CAP then table.remove(knifeSpeedBuf, 1) end
+    end)
 end)
 
 task.spawn(function()
