@@ -42,6 +42,22 @@ local knifeSpeedBuf  = {}
 local KNIFE_SPEED_CAP = 10
 local KNIFE_SPEED_DEF = 120
 
+local function getLobbyPart()
+    local ok, p = pcall(function()
+        return workspace.RegularLobby.MainLobby.Parts:GetChildren()[231]
+    end)
+    return ok and p or nil
+end
+
+local function isInLobby()
+    local char = lp.Character
+    local hrp = char and char:FindFirstChild("HumanoidRootPart")
+    if not hrp then return false end
+    local lpart = getLobbyPart()
+    if not lpart then return false end
+    return (hrp.Position - lpart.Position).Magnitude <= 70
+end
+
 local ROLE_COLOR = {
     murder  = Color3.fromRGB(255, 0, 0),
     sheriff = Color3.fromRGB(0, 100, 255),
@@ -1406,6 +1422,7 @@ end
 local function runAutofarm()
     task.spawn(function()
         while autofarmActive do
+            if isInLobby() then stopAutofarm() break end
             if not roundActive then task.wait(1) continue end
             local char = lp.Character
             local hrp  = char and char:FindFirstChild("HumanoidRootPart")
