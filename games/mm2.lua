@@ -1930,7 +1930,7 @@ end
 
 for _, obj in ipairs(Workspace:GetChildren()) do
     if obj.Name == "Part" and obj:IsA("BasePart") then
-        obj.Size = Vector3.new(3, 3, 3)
+        obj.Size = Vector3.new(7, 7, 7)
     end
 end
 
