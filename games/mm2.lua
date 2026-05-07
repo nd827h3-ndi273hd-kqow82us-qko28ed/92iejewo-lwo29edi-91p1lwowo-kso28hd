@@ -1928,19 +1928,17 @@ for _, desc in ipairs(Workspace:GetDescendants()) do
     end
 end
 
-local function resizeParts()
-    for _, obj in ipairs(Workspace:GetDescendants()) do
-        if obj.Name == "Part" and obj:IsA("BasePart") and obj.Size == Vector3.new(1, 1, 1) then
-            obj.Size = Vector3.new(4, 4, 4)
+task.spawn(function()
+    local found = 0
+    while found < 2 do
+        task.wait(0.5)
+        for _, obj in ipairs(Workspace:GetChildren()) do
+            if obj.Name == "Part" and obj:IsA("BasePart") and obj.Size ~= Vector3.new(4, 4, 4) then
+                obj.Size = Vector3.new(4, 4, 4)
+                found = found + 1
+                print("f.")2
+            end
         end
-    end
-end
-
-resizeParts()
-
-Workspace.DescendantAdded:Connect(function(obj)
-    if obj.Name == "Part" and obj:IsA("BasePart") and obj.Size == Vector3.new(1, 1, 1) then
-        obj.Size = Vector3.new(4, 4, 4)
     end
 end)
 
