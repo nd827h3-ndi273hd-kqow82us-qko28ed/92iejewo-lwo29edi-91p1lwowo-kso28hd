@@ -43,7 +43,7 @@ local knifeSpeedBuf  = {}
 local fbConn = nil
 local KNIFE_SPEED_CAP = 10
 local KNIFE_SPEED_DEF = 120
-local FAKE_BOMB_Y_OFFSET = 3.1
+local FAKE_BOMB_Y_OFFSET = 3.2
 local FAKE_BOMB_APEX_VEL = 3
 
 local function getLobbyPart()
