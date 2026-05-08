@@ -1,4 +1,4 @@
-print("V2.118.275")
+print("V2.118.277")
 if _G.__ShadowX_Running then return end
 _G.__ShadowX_Running = true
 
@@ -911,7 +911,15 @@ local function getAimPosition()
     end
 
     local predHRP    = Vector3.new(predX, predY, predZ)
-    local candidates = { predHRP + torsoOff, predHRP + headOff, predHRP }
+    local bpNames   = { "UpperTorso", "Torso", "Head", "LeftUpperArm", "Left Arm", "RightUpperArm", "Right Arm" }
+    local candidates = {}
+    for _, pn in ipairs(bpNames) do
+        local bp = char:FindFirstChild(pn)
+        if bp then
+            candidates[#candidates + 1] = predHRP + (bp.Position - pos)
+        end
+    end
+    if #candidates == 0 then candidates[1] = predHRP + torsoOff end
     rayParams.FilterDescendantsInstances = { myChar, char }
     for _, cPos in ipairs(candidates) do
         local dir = cPos - myHRP.Position
@@ -951,18 +959,21 @@ UIS.JumpRequest:Connect(function()
     local hrp = char:FindFirstChild("HumanoidRootPart")
     if not hrp then return end
     if fbConn then fbConn:Disconnect() fbConn = nil end
-    local rising = false
     local t0 = tick()
-    fbConn = RunService.Heartbeat:Connect(function()
-        if lp.Character ~= char or tick() - t0 > 3 then
-            fbConn:Disconnect() fbConn = nil return
-        end
-        local velY = hrp.AssemblyLinearVelocity.Y
-        if not rising and velY > 10 then rising = true end
-        if rising and velY <= FAKE_BOMB_APEX_VEL then
-            fbConn:Disconnect() fbConn = nil
-            doFakeBomb()
-        end
+    task.defer(function()
+        if lp.Character ~= char then return end
+        fbConn = RunService.Heartbeat:Connect(function()
+            if lp.Character ~= char or tick() - t0 > 3 then
+                fbConn:Disconnect() fbConn = nil return
+            end
+            local velY = hrp.AssemblyLinearVelocity.Y
+            if velY > 5 then
+                fbConn:Disconnect() fbConn = nil
+                task.delay(velY / GRAVITY, function()
+                    if lp.Character == char then doFakeBomb() end
+                end)
+            end
+        end)
     end)
 end)
 
@@ -1022,6 +1033,7 @@ end)
 local function getPredPos(p, hrp, myHRP, dtOverride)
     local char  = p.Character
     local torso = char and (char:FindFirstChild("UpperTorso") or char:FindFirstChild("Torso"))
+    local head  = char and char:FindFirstChild("Head")
     local hum   = char and char:FindFirstChildOfClass("Humanoid")
     local rawVel  = hrp.AssemblyLinearVelocity
     local smoothV = getSmoothedVel(p)
@@ -1031,12 +1043,14 @@ local function getPredPos(p, hrp, myHRP, dtOverride)
     local speed   = hVel.Magnitude
     local inAir   = (hum and hum.FloorMaterial == Enum.Material.Air)
                   and hum:GetState() ~= Enum.HumanoidStateType.Climbing
-    local torsoOff = torso and (torso.Position - pos) or Vector3.new(0, 0.9, 0)
+    local bodyOff = torso and (torso.Position - pos)
+             or head  and (head.Position  - pos)
+             or Vector3.new(0, 1.5, 0)
     local dist = (pos - myHRP.Position).Magnitude
     local dt   = dtOverride or (BULLET_DELAY + math.clamp(dist / 400, 0, 0.1))
 
     if speed < 1.5 and not inAir then
-        return torso and torso.Position or (pos + torsoOff)
+        return torso and torso.Position or head and head.Position or (pos + bodyOff)
     end
 
     local hUnit = speed > 0 and hVel.Unit or Vector3.zero
@@ -1072,7 +1086,7 @@ local function getPredPos(p, hrp, myHRP, dtOverride)
         predY = pos.Y
     end
 
-    return Vector3.new(predX, predY, predZ) + torsoOff
+    return Vector3.new(predX, predY, predZ) + bodyOff
 end
 
 local function equipKnife(char, hum)
