@@ -900,14 +900,17 @@ local function getAimPosition()
         else                   yOff =  0
         end
         predY = pos.Y + yOff
-        if roundActive then
-            print(string.format("[ShadowX] AimDebug | velY=%.1f hSpeed=%.1f yOff=%.1f floorDist=%s predY=%.1f",
-                velY, speed, yOff,
-                floorHit and string.format("%.1f", floorHit.Distance) or "nil",
-                predY))
+        if lp.Name == OWNER then
+        print(string.format("[ShadowX] AimGun | hSpeed=%.1f lead=%.2f velY=%.1f yOff=%.1f predY=%.1f floorDist=%s",
+            speed, lead, velY, yOff, predY,
+            floorHit and string.format("%.1f", floorHit.Distance) or "nil"))
         end
     else
         predY = pos.Y
+        if lp.Name == OWNER then
+            print(string.format("[ShadowX] AimGun | hSpeed=%.1f lead=%.2f velY=0 yOff=0 (ground)",
+                speed, lead))
+        end
     end
 
     local predHRP    = Vector3.new(predX, predY, predZ)
