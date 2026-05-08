@@ -1933,6 +1933,8 @@ do
     addLine("Jump power locked to 53.")
     addLine("Silent aim with smart movement prediction.")
     addLine("Auto killall triggers after 20 seconds idle as Murderer.")
+    addLine("Auto prank bomb double jump just hold prank bomb and jump.")
+    addLine("Auto wallhop just act like doing wall hop then it will work.")
 
     makeDraggable(frame, { frame, titleLbl })
 end
