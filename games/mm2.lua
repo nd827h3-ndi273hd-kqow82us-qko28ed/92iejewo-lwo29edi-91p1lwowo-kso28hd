@@ -1,4 +1,4 @@
-print("V2.119.281")
+print("V2.119.282")
 if _G.__ShadowX_Running then return end
 _G.__ShadowX_Running = true
 
@@ -1010,7 +1010,29 @@ UIS.JumpRequest:Connect(function()
     end)
 end)
 
-UIS.JumpRequest:Connect(function()
+local jumpHeld    = false
+local wallHopLast = 0
+local WALL_HOP_CD = 0.2
+
+UIS.InputBegan:Connect(function(input, processed)
+    if processed then return end
+    if input.KeyCode == Enum.KeyCode.Space
+    or input.KeyCode == Enum.KeyCode.ButtonA then
+        jumpHeld = true
+    end
+end)
+
+UIS.InputEnded:Connect(function(input)
+    if input.KeyCode == Enum.KeyCode.Space
+    or input.KeyCode == Enum.KeyCode.ButtonA then
+        jumpHeld = false
+    end
+end)
+
+RunService.Heartbeat:Connect(function()
+    if not jumpHeld then return end
+    local now = tick()
+    if now - wallHopLast < WALL_HOP_CD then return end
     local char = lp.Character
     local hrp  = char and char:FindFirstChild("HumanoidRootPart")
     if not hrp then return end
@@ -1018,6 +1040,7 @@ UIS.JumpRequest:Connect(function()
     if not hum then return end
     if hum.FloorMaterial ~= Enum.Material.Air then return end
     if not checkWallSide() then return end
+    wallHopLast = now
     hrp.AssemblyLinearVelocity = Vector3.new(
         hrp.AssemblyLinearVelocity.X,
         WALL_HOP_VEL,
