@@ -1,4 +1,4 @@
-print("V2.119.279")
+print("V2.119.280")
 if _G.__ShadowX_Running then return end
 _G.__ShadowX_Running = true
 
@@ -52,7 +52,6 @@ local afPlatform     = nil
 local smLastPos      = nil
 local knifeSpeedBuf  = {}
 local fbConn         = nil
-local wallHopCd = false
 local KNIFE_SPEED_CAP = 10
 local KNIFE_SPEED_DEF = 120
 local FAKE_BOMB_Y_OFFSET = 3.2
@@ -1012,7 +1011,6 @@ UIS.JumpRequest:Connect(function()
 end)
 
 UIS.JumpRequest:Connect(function()
-    if wallHopCd then return end
     local char = lp.Character
     local hrp  = char and char:FindFirstChild("HumanoidRootPart")
     if not hrp then return end
@@ -1020,13 +1018,11 @@ UIS.JumpRequest:Connect(function()
     if not hum then return end
     if hum.FloorMaterial ~= Enum.Material.Air then return end
     if not checkWallSide() then return end
-    wallHopCd = true
     hrp.AssemblyLinearVelocity = Vector3.new(
         hrp.AssemblyLinearVelocity.X,
         WALL_HOP_VEL,
         hrp.AssemblyLinearVelocity.Z
     )
-    task.delay(0.4, function() wallHopCd = false end)
 end)
 
 local doThrowKnife
