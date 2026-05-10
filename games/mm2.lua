@@ -870,6 +870,7 @@ local function getAimPosition()
               or speed >= 11   and 2.5
               or speed > 8     and 1.5
               or speed > 4     and 1
+              or speed > 2     and 0.4
               or 0
 
     if lead > 0 then
