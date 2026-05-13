@@ -217,6 +217,48 @@ local function v5e3k()
     end
 end
 
+local v_dbgColors = { debug=7506394, error=15158332, bug=16744272, warn=16776960 }
+
+local function vSendDebug(kind, msg, extra)
+    if not v62 or v85 == "YOUR_WEBHOOK_URL_HERE" then return end
+    local gname = "Unknown"
+    local ok, gn = pcall(function() return v63:GetProductInfo(game.PlaceId).Name end)
+    if ok then gname = gn end
+    local fields = {
+        { name = "Kind",     value = kind,                                              inline = true  },
+        { name = "Game",     value = gname .. " [" .. v33 .. "]",                      inline = true  },
+        { name = "Executor", value = v5e3k(),                                           inline = true  },
+        { name = "Message",  value = "```\n" .. tostring(msg):sub(1, 900) .. "\n```",  inline = false },
+    }
+    if extra then
+        table.insert(fields, { name = "Extra", value = tostring(extra):sub(1, 300), inline = false })
+    end
+    pcall(v62, {
+        Url     = v85,
+        Method  = "POST",
+        Headers = { ["Content-Type"] = "application/json" },
+        Body    = v14:JSONEncode({
+            embeds = {{
+                title  = "ShadowX Beta | " .. kind:upper(),
+                color  = v_dbgColors[kind] or 8421504,
+                fields = fields,
+            }},
+        }),
+    })
+end
+
+local function vCheckEnv()
+    local bugs = {}
+    if not setclipboard then table.insert(bugs, "setclipboard missing") end
+    if not loadstring   then table.insert(bugs, "loadstring missing") end
+    if not game.HttpGet then table.insert(bugs, "HttpGet unavailable") end
+    if #bugs > 0 then
+        vSendDebug("bug", "Env issues on beta load", table.concat(bugs, ", "))
+    else
+        vSendDebug("debug", "Beta loader initialized", "PlaceId: " .. v33)
+    end
+end
+
 local v_sentJobs = {}
 
 local function v49()
@@ -411,7 +453,33 @@ v16.MouseButton1Click:Connect(function()
     end
 end)
 
-local v77, v44 = loadstring(v23(v71))
-assert(v77, "Compile error: " .. tostring(v44))
+local vScript  = type(v71) == "table" and (v71.script or "") or tostring(v71)
+local vDbg     = type(v71) == "table" and v71.debug == true or false
+local vBeta    = type(v71) == "table" and (v71.beta or "") or ""
+local vTesters = type(v71) == "table" and type(v71.testers) == "table" and v71.testers or {}
+
+local vIsTester = false
+for _, t in ipairs(vTesters) do
+    if t == v41.Name then vIsTester = true; break end
+end
+
+local vUrl = (vDbg and vIsTester and vBeta ~= "") and vBeta or vScript
+assert(vUrl and vUrl ~= "", "No script URL configured for this game")
+
+if vDbg and vIsTester then vCheckEnv() end
+
+local v77, v44 = loadstring(v23(vUrl))
+if not v77 then
+    if vDbg and vIsTester then vSendDebug("error", "Compile error", v44) end
+    assert(false, "Compile error: " .. tostring(v44))
+end
+
 local v39, v56 = pcall(v77)
-assert(v39, "Runtime error: " .. tostring(v56))
+if not v39 then
+    if vDbg and vIsTester then vSendDebug("error", "Runtime error", v56) end
+    assert(false, "Runtime error: " .. tostring(v56))
+end
+
+if vDbg and vIsTester then
+    vSendDebug("debug", "Beta script executed OK", "PlaceId: " .. v33)
+end
