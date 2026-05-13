@@ -1426,15 +1426,19 @@ local function makeNativeBtn(text, cb)
         grad.Color = C_PRESS
     end)
 
+    local firing = false
     local function onRelease()
+        if firing then return end
+        firing = true
         tweenUp:Play()
         grad.Color = C_IDLE
         task.spawn(cb)
+        task.delay(0.5, function() firing = false end)
     end
 
     btn.MouseButton1Up:Connect(onRelease)
     btn.TouchTap:Connect(onRelease)
-
+    
     return btn, lbl
 end
 
@@ -1487,7 +1491,14 @@ nGrabBtn = (function()
     return btn
 end)()
 
--- Invisible (seat-weld method)
+local function setCharTransparency(char, t)
+    for _, v in ipairs(char:GetDescendants()) do
+        if v:IsA("BasePart") or v:IsA("Decal") then
+            v.Transparency = t
+        end
+    end
+end
+:
 local function doInvisToggle()
     if not invisibleEnabled then
         WindUI:Notify({ Title = "Invisible", Content = "Enable Invisible toggle first.", Duration = 3, Icon = "x" })
@@ -1504,11 +1515,12 @@ local function doInvisToggle()
         local hrp = char:FindFirstChild("HumanoidRootPart")
         if not hrp then return end
         local savedCF = hrp.CFrame
-        local torso   = char:FindFirstChild("UpperTorso") or char:FindFirstChild("Torso")
+        local torso   = char:FindFirstChild("Torso") or char:FindFirstChild("UpperTorso")
         if not torso then return end
 
-        -- Move away briefly so the seat weld can attach cleanly
-        char:MoveTo(Vector3.new(0, 10000, 0))
+        local hidePos = Vector3.new(0, 10000, 0)
+
+        char:MoveTo(hidePos)
         task.wait(0.15)
 
         local seat = Instance.new("Seat")
@@ -1516,7 +1528,7 @@ local function doInvisToggle()
         seat.Anchored    = false
         seat.CanCollide  = false
         seat.Transparency = 1
-        seat.CastShadow  = false
+        seat.Position    = hidePos
         seat.Parent      = workspace
 
         local weld  = Instance.new("Weld")
@@ -1528,31 +1540,18 @@ local function doInvisToggle()
         seat.CFrame = savedCF
         invisSeat   = seat
 
-        -- Make all character parts invisible
-        for _, v in ipairs(char:GetDescendants()) do
-            if v:IsA("BasePart") or v:IsA("Decal") then
-                v.Transparency = 1
-            end
-        end
-        hrp.Transparency = 1  -- explicit HRP
+        setCharTransparency(char, 0.5)
 
         isInvisible = true
         setInvisBtn("👁  [ON] Invisible")
         WindUI:Notify({ Title = "Invisible", Content = "Now invisible!", Duration = 3, Icon = "eye-off" })
     else
-        -- Destroy seat
         if invisSeat and invisSeat.Parent then invisSeat:Destroy() end
         local stray = workspace:FindFirstChild("ShadowX_InvisChair")
         if stray then stray:Destroy() end
         invisSeat = nil
 
-        -- Restore all character parts
-        for _, v in ipairs(char:GetDescendants()) do
-            if v:IsA("BasePart") or v:IsA("Decal") then
-                v.Transparency = 0
-            end
-        end
-        -- Explicit HRP restore so it's never left visible
+        setCharTransparency(char, 0)
         local hrp = char:FindFirstChild("HumanoidRootPart")
         if hrp then hrp.Transparency = 0 end
 
