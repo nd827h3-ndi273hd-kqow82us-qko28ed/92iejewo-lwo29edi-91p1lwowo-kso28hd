@@ -1245,7 +1245,6 @@ local SilentAimToggle = MainTab:Toggle({
 local ManualAimToggle = MainTab:Toggle({
     Title    = "Manual Aim",
     Desc     = "Enable the Shoot Murd button",
-    Icon     = "target",
     Type     = "Checkbox",
     Value    = false,
     Callback = function(state)
@@ -1258,7 +1257,6 @@ local ManualAimToggle = MainTab:Toggle({
 local ThrowKnifeToggle = MainTab:Toggle({
     Title    = "Throw Knife",
     Desc     = "Enable the Throw Knife button",
-    Icon     = "sword",
     Type     = "Checkbox",
     Value    = false,
     Callback = function(state)
@@ -1271,7 +1269,6 @@ local ThrowKnifeToggle = MainTab:Toggle({
 local GrabGunToggle = MainTab:Toggle({
     Title    = "Grab Gun",
     Desc     = "Enable the Grab Gun button",
-    Icon     = "zap",
     Type     = "Checkbox",
     Value    = false,
     Callback = function(state)
@@ -1284,7 +1281,6 @@ local GrabGunToggle = MainTab:Toggle({
 local AutoGrabGunToggle = MainTab:Toggle({
     Title    = "Auto Grab Gun",
     Desc     = "Automatically grabs the gun when it drops",
-    Icon     = "magnet",
     Type     = "Checkbox",
     Value    = false,
     Callback = function(state)
@@ -1302,7 +1298,6 @@ local AutoGrabGunToggle = MainTab:Toggle({
 local FakeBombToggle = MainTab:Toggle({
     Title    = "Fake Bomb",
     Desc     = "Auto triggers fake bomb at jump apex",
-    Icon     = "zap-off",
     Type     = "Checkbox",
     Value    = false,
     Callback = function(state)
@@ -1314,7 +1309,6 @@ local FakeBombToggle = MainTab:Toggle({
 local InvisibleToggle = MainTab:Toggle({
     Title    = "Invisible",
     Desc     = "Enable the Invisible button",
-    Icon     = "eye-off",
     Type     = "Checkbox",
     Value    = false,
     Callback = function(state)
@@ -1332,7 +1326,7 @@ local function setInvisBtn(title)
 end
 
 local function resetInvisBtn()
-    setInvisBtn("👁  Invisible")
+    setInvisBtn("Invisible")
 end
 
 -- GUI setup
@@ -1609,7 +1603,7 @@ end)()
 nThrowBtn = (function()
     local btn = makeNativeBtn("Throw Knife", function()
         if not isLpMurd then
-            WindUI:Notify({ Title = "Throw Knife", Content = "You are not the Murderer.", Duration = 3, Icon = "x" })
+            WindUI:Notify({ Title = "Throw Knife", Content = "You are not the Murderer.", Duration = 2, Icon = "x" })
             return
         end
         local ok, err = pcall(doThrowKnife)
@@ -1683,11 +1677,10 @@ local function doInvisToggle()
         seat.CFrame = savedCF
         invisSeat   = seat
 
-        setCharTransparency(char, 0.5)
+        setCharTransparency(char, 0.6)
 
         isInvisible = true
-        setInvisBtn("👁  [ON] Invisible")
-        WindUI:Notify({ Title = "Invisible", Content = "Now invisible!", Duration = 3, Icon = "eye-off" })
+        setInvisBtn("[ON] Invisible")
     else
         if invisSeat and invisSeat.Parent then invisSeat:Destroy() end
         local stray = workspace:FindFirstChild("ShadowX_InvisChair")
@@ -1701,12 +1694,11 @@ local function doInvisToggle()
 
         isInvisible = false
         resetInvisBtn()
-        WindUI:Notify({ Title = "Invisible", Content = "Back to visible.", Duration = 2, Icon = "eye" })
     end
     invisActive = false
 end
 
-nInvisBtn, invisNativeLbl = makeNativeBtn("👁  Invisible", doInvisToggle)
+nInvisBtn, invisNativeLbl = makeNativeBtn("Invisible", doInvisToggle)
 nInvisBtn.Visible = false
 
 -- ── Players Tab ───────────────────────────────────────────────────────────────
