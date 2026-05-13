@@ -1363,22 +1363,14 @@ nLayout.HorizontalAlignment = Enum.HorizontalAlignment.Right
 nLayout.VerticalAlignment   = Enum.VerticalAlignment.Top
 nLayout.Parent              = nFrame
 
-local BTN_W = 160
-local BTN_H = 45
-
-local C_IDLE  = ColorSequence.new({
-    ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 40, 70)),
-    ColorSequenceKeypoint.new(1, Color3.fromRGB(130, 0, 22)),
-})
-local C_PRESS = ColorSequence.new({
-    ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 90, 115)),
-    ColorSequenceKeypoint.new(1, Color3.fromRGB(200, 25, 55)),
-})
+local BTN_W          = 160
+local BTN_H          = 45
+local PARTICLE_COUNT = 100
 
 local function makeNativeBtn(text, cb)
     local btn = Instance.new("TextButton")
     btn.Size             = UDim2.new(0, BTN_W, 0, BTN_H)
-    btn.BackgroundColor3 = Color3.fromRGB(170, 0, 25)
+    btn.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
     btn.Text             = ""
     btn.AutoButtonColor  = false
     btn.BorderSizePixel  = 0
@@ -1387,28 +1379,139 @@ local function makeNativeBtn(text, cb)
     local corner = Instance.new("UICorner", btn)
     corner.CornerRadius = UDim.new(0, 8)
 
-    local grad = Instance.new("UIGradient", btn)
-    grad.Color    = C_IDLE
-    grad.Rotation = 100
-
     local stroke = Instance.new("UIStroke", btn)
-    stroke.Color        = Color3.fromRGB(255, 80, 100)
+    stroke.Color        = Color3.fromRGB(35, 35, 35)
     stroke.Thickness    = 1
-    stroke.Transparency = 0.4
+    stroke.Transparency = 0
 
-    local shadow = Instance.new("ImageLabel", btn)
-    shadow.Size                  = UDim2.new(1, 12, 1, 12)
-    shadow.Position              = UDim2.new(0, -6, 0, 5)
-    shadow.BackgroundTransparency = 1
-    shadow.ZIndex                = 0
-    shadow.Image                 = "rbxassetid://6015897843"
-    shadow.ImageColor3           = Color3.fromRGB(200, 0, 30)
-    shadow.ImageTransparency     = 0.6
-    shadow.ScaleType             = Enum.ScaleType.Slice
-    shadow.SliceCenter           = Rect.new(49, 49, 450, 450)
+    -- Particle container (clips to button bounds)
+    local clip = Instance.new("Frame", btn)
+    clip.Size                   = UDim2.new(1, 0, 1, 0)
+    clip.BackgroundTransparency = 1
+    clip.ClipsDescendants       = true
+    clip.ZIndex                 = 1
+    Instance.new("UICorner", clip).CornerRadius = UDim.new(0, 8)
 
-    local sc = Instance.new("UIScale", btn)
-    sc.Scale = 1
+    -- Build particles
+    local pData    = {}
+    local rng      = Random.new()
+    for i = 1, PARTICLE_COUNT do
+        local sz = rng:NextInteger(2, 5)
+        local f  = Instance.new("Frame", clip)
+        f.Size                   = UDim2.new(0, sz, 0, sz)
+        f.BorderSizePixel        = 0
+        f.BackgroundColor3       = Color3.fromHSV(i / PARTICLE_COUNT, 1, 1)
+        f.BackgroundTransparency = rng:NextNumber(0, 0.25)
+        f.ZIndex                 = 1
+        Instance.new("UICorner", f).CornerRadius = UDim.new(1, 0)
+
+        local px = rng:NextInteger(0, BTN_W - sz)
+        local py = rng:NextInteger(0, BTN_H - sz)
+        f.Position = UDim2.new(0, px, 0, py)
+
+        pData[i] = {
+            f   = f,
+            x   = px,  y   = py,
+            vx  = rng:NextNumber(-20, 20),
+            vy  = rng:NextNumber(-20, 20),
+            hue = i / PARTICLE_COUNT,
+            dh  = rng:NextNumber(0.08, 0.25) * (rng:NextNumber() < 0.5 and 1 or -1),
+            sz  = sz,
+        }
+    end
+
+    -- Click animation state
+    local clickX, clickY  = 0, 0
+    local clickActive     = false
+    local clickT          = 0
+    local scattered       = false
+    local GATHER_T        = 0.22
+    local SCATTER_T       = 0.45
+    local MAX_FLOAT_SPEED = 38
+
+    btn.InputBegan:Connect(function(inp)
+        if inp.UserInputType ~= Enum.UserInputType.MouseButton1
+        and inp.UserInputType ~= Enum.UserInputType.Touch then return end
+        local ap = btn.AbsolutePosition
+        clickX      = inp.Position.X - ap.X
+        clickY      = inp.Position.Y - ap.Y
+        clickActive = true
+        clickT      = tick()
+        scattered   = false
+    end)
+
+    local conn
+    conn = RunService.Heartbeat:Connect(function(dt)
+        if not btn.Parent then conn:Disconnect() return end
+        local elapsed = clickActive and (tick() - clickT) or math.huge
+
+        -- End animation cycle
+        if clickActive and elapsed >= GATHER_T + SCATTER_T then
+            clickActive = false
+        end
+
+        for _, pd in ipairs(pData) do
+            -- Cycle RGB hue
+            pd.hue = (pd.hue + pd.dh * dt) % 1
+            pd.f.BackgroundColor3 = Color3.fromHSV(pd.hue, 1, 1)
+
+            if clickActive and elapsed < GATHER_T then
+                -- Pull toward click point
+                pd.x = pd.x + (clickX - pd.x) * (9 * dt)
+                pd.y = pd.y + (clickY - pd.y) * (9 * dt)
+
+            elseif clickActive and elapsed >= GATHER_T then
+                -- Scatter once
+                if not scattered then
+                    scattered = true
+                    for _, pd2 in ipairs(pData) do
+                        local a = rng:NextNumber(0, math.pi * 2)
+                        local s = rng:NextNumber(90, 220)
+                        pd2.vx = math.cos(a) * s
+                        pd2.vy = math.sin(a) * s
+                    end
+                end
+                pd.x  = pd.x + pd.vx * dt
+                pd.y  = pd.y + pd.vy * dt
+                pd.vx = pd.vx * (1 - dt * 4)
+                pd.vy = pd.vy * (1 - dt * 4)
+
+            else
+                -- Normal float with bounce
+                pd.x = pd.x + pd.vx * dt
+                pd.y = pd.y + pd.vy * dt
+
+                if pd.x < 0 then
+                    pd.vx = math.abs(pd.vx)
+                    pd.x  = 0
+                elseif pd.x > BTN_W - pd.sz then
+                    pd.vx = -math.abs(pd.vx)
+                    pd.x  = BTN_W - pd.sz
+                end
+                if pd.y < 0 then
+                    pd.vy = math.abs(pd.vy)
+                    pd.y  = 0
+                elseif pd.y > BTN_H - pd.sz then
+                    pd.vy = -math.abs(pd.vy)
+                    pd.y  = BTN_H - pd.sz
+                end
+
+                -- Occasional drift nudge
+                if rng:NextNumber() < 0.015 then
+                    pd.vx = pd.vx + rng:NextNumber(-8, 8)
+                    pd.vy = pd.vy + rng:NextNumber(-8, 8)
+                    local spd = math.sqrt(pd.vx * pd.vx + pd.vy * pd.vy)
+                    if spd > MAX_FLOAT_SPEED then
+                        local inv = MAX_FLOAT_SPEED / spd
+                        pd.vx = pd.vx * inv
+                        pd.vy = pd.vy * inv
+                    end
+                end
+            end
+
+            pd.f.Position = UDim2.new(0, pd.x, 0, pd.y)
+        end
+    end)
 
     local lbl = Instance.new("TextLabel", btn)
     lbl.Size                   = UDim2.new(1, -8, 1, 0)
@@ -1420,33 +1523,19 @@ local function makeNativeBtn(text, cb)
     lbl.Font                   = Enum.Font.GothamBold
     lbl.TextTruncate           = Enum.TextTruncate.AtEnd
     lbl.TextXAlignment         = Enum.TextXAlignment.Center
-    lbl.ZIndex                 = 2
-
-    local tweenDown = TweenService:Create(sc,
-        TweenInfo.new(0.07, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
-        { Scale = 0.89 })
-    local tweenUp = TweenService:Create(sc,
-        TweenInfo.new(0.16, Enum.EasingStyle.Back, Enum.EasingDirection.Out),
-        { Scale = 1.0 })
-
-    btn.MouseButton1Down:Connect(function()
-        tweenDown:Play()
-        grad.Color = C_PRESS
-    end)
+    lbl.ZIndex                 = 3
 
     local firing = false
     local function onRelease()
         if firing then return end
         firing = true
-        tweenUp:Play()
-        grad.Color = C_IDLE
         task.spawn(cb)
         task.delay(0.5, function() firing = false end)
     end
 
     btn.MouseButton1Up:Connect(onRelease)
     btn.TouchTap:Connect(onRelease)
-    
+
     return btn, lbl
 end
 
