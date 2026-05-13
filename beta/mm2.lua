@@ -1034,11 +1034,16 @@ end
 local function doSingleShot()
     local myChar = lp.Character
     local myHRP  = myChar and myChar:FindFirstChild("HumanoidRootPart")
+    if not myHRP then return end
     local remote = getShootRemote()
+    if not remote then
+        equipGunIfNeeded()
+        remote = getShootRemote()
+        if not remote then return end
+    end
     local aimPos = getAimPosition()
     if not aimPos then return end
     local ok, err = pcall(function()
-        equipGunIfNeeded()
         remote:FireServer(CFrame.new(myHRP.Position, aimPos), CFrame.new(aimPos))
     end)
     if not ok then warn("[ShadowX] doSingleShot: " .. tostring(err)) end
@@ -1832,9 +1837,10 @@ local ServerInfo = MiscTab:Paragraph({
 task.spawn(function()
     while true do
         task.wait(5)
-        if ServerInfo then
+        if ServerInfo and type(ServerInfo.Set) == "function" then
             ServerInfo:Set({
-                Desc = string.format("Game: %s\nPlace ID: %d\nJob ID: %s\nPlayers: %d/%d", gameName, game.PlaceId, game.JobId, #Players:GetPlayers(), Players.MaxPlayers)
+                Desc = string.format("Game: %s\nPlace ID: %d\nJob ID: %s\nPlayers: %d/%d",
+                    gameName, game.PlaceId, game.JobId, #Players:GetPlayers(), Players.MaxPlayers)
             })
         end
     end
