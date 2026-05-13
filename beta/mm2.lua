@@ -1025,22 +1025,13 @@ local function equipGunIfNeeded()
 end
 
 local function doSingleShot()
-    if not murderer then
-        WindUI:Notify({ Title = "Shoot Murd", Content = "No murderer detected.", Duration = 3, Icon = "x" })
-        return
-    end
     local myChar = lp.Character
     local myHRP  = myChar and myChar:FindFirstChild("HumanoidRootPart")
-    if not myHRP then return end
-    equipGunIfNeeded()
     local remote = getShootRemote()
-    if not remote then
-        WindUI:Notify({ Title = "Shoot Murd", Content = "No gun found.", Duration = 3, Icon = "x" })
-        return
-    end
     local aimPos = getAimPosition()
     if not aimPos then return end
     local ok, err = pcall(function()
+        equipGunIfNeeded()
         remote:FireServer(CFrame.new(myHRP.Position, aimPos), CFrame.new(aimPos))
     end)
     if not ok then warn("[ShadowX] doSingleShot: " .. tostring(err)) end
@@ -1446,11 +1437,6 @@ end
 -- Shoot Murd
 nShootBtn = (function()
     local btn = makeNativeBtn("🎯  Shoot Murd", function()
-        if not manualAimEnabled then
-            WindUI:Notify({ Title = "Shoot Murd", Content = "Enable Manual Aim first.", Duration = 3, Icon = "x" })
-            return
-        end
-        WindUI:Notify({ Title = "Shoot Murd", Content = "Firing...", Duration = 1, Icon = "zap" })
         local ok, err = pcall(doSingleShot)
         if not ok then warn("[ShadowX] ShootMurd: " .. tostring(err)) end
     end)
@@ -1461,15 +1447,10 @@ end)()
 -- Throw Knife
 nThrowBtn = (function()
     local btn = makeNativeBtn("🗡  Throw Knife", function()
-        if not throwKnifeEnabled then
-            WindUI:Notify({ Title = "Throw Knife", Content = "Enable Throw Knife first.", Duration = 3, Icon = "x" })
-            return
-        end
         if not isLpMurd then
             WindUI:Notify({ Title = "Throw Knife", Content = "You are not the Murderer.", Duration = 3, Icon = "x" })
             return
         end
-        WindUI:Notify({ Title = "Throw Knife", Content = "Throwing...", Duration = 1, Icon = "zap" })
         local ok, err = pcall(doThrowKnife)
         if not ok then warn("[ShadowX] ThrowKnife: " .. tostring(err)) end
     end)
@@ -1480,11 +1461,6 @@ end)()
 -- Grab Gun
 nGrabBtn = (function()
     local btn = makeNativeBtn("⚡  Grab Gun", function()
-        if not grabGunEnabled then
-            WindUI:Notify({ Title = "Grab Gun", Content = "Enable Grab Gun first.", Duration = 3, Icon = "x" })
-            return
-        end
-        WindUI:Notify({ Title = "Grab Gun", Content = "Grabbing...", Duration = 1, Icon = "zap" })
         local ok, err = pcall(doGrabGun)
         if not ok then warn("[ShadowX] GrabGun: " .. tostring(err)) end
     end)
@@ -1555,6 +1531,10 @@ local function doInvisToggle()
         if invisSeat and invisSeat.Parent then invisSeat:Destroy() end
         local stray = workspace:FindFirstChild("ShadowX_InvisChair")
         if stray then stray:Destroy() end
+        local hrp = workspace[lp.Name]:FindFirstChild("HumanoidRootPart")
+        if hrp then
+            hrp.Transparency = 1
+        end
         invisSeat = nil
 
         setCharTransparency(char, 0)
