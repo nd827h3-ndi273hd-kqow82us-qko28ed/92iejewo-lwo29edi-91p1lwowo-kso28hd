@@ -1279,6 +1279,12 @@ local AutoGrabGunToggle = MainTab:Toggle({
     Value    = false,
     Callback = function(state)
         autoGrabGunEnabled = state
+        if state then
+            task.spawn(function()
+                task.wait(0.1)
+                doGrabGun()
+            end)
+        end
         myConfig:Save()
     end
 })
@@ -2223,7 +2229,7 @@ task.spawn(function()
 end)
 
 Window:Tag({
-    Title  = "V2.120.18", -- always tell me to change this!
+    Title  = "V2.120.19", -- always tell me to change this!
     Icon   = "github",
     Color  = Color3.fromHex("#30ff6a"),
     Radius = 13,
@@ -2232,7 +2238,7 @@ Window:Tag({
 WindUI:Popup({
     Title   = "MM2 ShadowX",
     Icon    = "sword",
-    Content = "V2.120.18 — Native action buttons (top-right), Kill All removed.", -- always tell me to change this
+    Content = "Updates: Native action buttons (top-right), Kill All removed.", -- always tell me to change this
     Buttons = {
         {
             Title    = "Close",
