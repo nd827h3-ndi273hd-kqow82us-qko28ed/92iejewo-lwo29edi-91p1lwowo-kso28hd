@@ -1094,7 +1094,6 @@ local function equipGunIfNeeded()
     if not bpGun then return end
     local hum = myChar:FindFirstChildOfClass("Humanoid")
     if hum then pcall(function() hum:EquipTool(bpGun) end) end
-    task.wait(0.1)
 end
 
 local function doSingleShot()
