@@ -1295,6 +1295,35 @@ local function getPlayerOptions()
     return opts
 end
 
+local function doKillAll()
+    local char = lp.Character
+    if not char then return end
+    local hum = char:FindFirstChildOfClass("Humanoid")
+    if not hum then return end
+    local knife = equipKnife(char, hum)
+    if not knife then warn("[ShadowX] KillAll: no Knife found") return end
+    local knifeEvents = knife:FindFirstChild("Events")
+    local stab = knifeEvents and knifeEvents:FindFirstChild("KnifeStabbed")
+    if not (stab and stab:IsA("RemoteEvent")) then
+        pcall(function() lp.Character:FindFirstChild("Knife").Events.KnifeStabbed:FireServer() end)
+        return
+    end
+    local myHRP = char:FindFirstChild("HumanoidRootPart")
+    if not myHRP then return end
+    for _, p in ipairs(Players:GetPlayers()) do
+        if p ~= lp and p.Character then
+            local hrp = p.Character:FindFirstChild("HumanoidRootPart")
+            if hrp then
+                pcall(function()
+                    hrp.CFrame = myHRP.CFrame + myHRP.CFrame.LookVector
+                end)
+            end
+        end
+    end
+    local ok, err = pcall(function() stab:FireServer() end)
+    if not ok then warn("[ShadowX] KillAll FireServer: " .. tostring(err)) end
+end
+
 -- ── Toggles ───────────────────────────────────────────────────────────────────
 local SilentAimToggle = MainTab:Toggle({
     Title    = "Silent Aim",
@@ -1316,6 +1345,14 @@ local ManualAimToggle = MainTab:Toggle({
         manualAimEnabled = state
         if nShootBtn then nShootBtn.Visible = state end
         saveConfig()
+    end
+})
+
+local KillAllButton = MainTab:Button({
+    Title    = "Kill All",
+    Desc     = "Kills all player when lp is murd",
+    Callback = function()
+        doKillAll()
     end
 })
 
@@ -2466,7 +2503,7 @@ task.spawn(function()
 end)
 
 Window:Tag({
-    Title  = "V2.120.23", -- always tell me to change this!
+    Title  = "V2.120.24", -- always tell me to change this!
     Icon   = "github",
     Color  = Color3.fromHex("#30ff6a"),
     Radius = 13,
