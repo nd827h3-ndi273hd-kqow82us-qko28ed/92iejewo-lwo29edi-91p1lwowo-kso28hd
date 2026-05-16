@@ -2526,7 +2526,7 @@ task.spawn(function()
 end)
 
 Window:Tag({
-    Title  = "V2.120.24", -- always tell me to change this!
+    Title  = "V2.120.25", -- always tell me to change this!
     Icon   = "github",
     Color  = Color3.fromHex("#30ff6a"),
     Radius = 13,
