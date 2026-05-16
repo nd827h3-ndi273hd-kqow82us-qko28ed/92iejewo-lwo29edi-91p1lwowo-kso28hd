@@ -1356,7 +1356,7 @@ local KillAllButton = MainTab:Button({
     end
 })
 
-local AutoKillAllToggle = MainTab:Button({
+local AutoKillAllToggle = MainTab:Toggle({
     Title = "Auto Kill All",
     Desc = "Automatically kills all when murd",
     Type = "CheckBox",
