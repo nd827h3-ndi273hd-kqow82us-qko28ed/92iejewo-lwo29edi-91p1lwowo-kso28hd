@@ -1356,6 +1356,28 @@ local KillAllButton = MainTab:Button({
     end
 })
 
+local AutoKillAllToggle = MainTab:Button({
+    Title = "Auto Kill All",
+    Desc = "Automatically kills all when murd",
+    Type = "CheckBox",
+    Value = false,
+    Callback = function(state)
+        autoKillAllEnabled = state
+        if state then
+            task.spawn(function()
+                task.wait(0.1)
+                local char = lp.Character
+                if not char then return end
+                local hum = char:FindFirstChildOfClass("Humanoid")
+                if not hum then return end
+                local knife = equipKnife(char, hum)
+                if not knife then return end
+                doKillAll()
+            end)
+        end
+        saveConfig()
+    end
+})
 local ThrowKnifeToggle = MainTab:Toggle({
     Title    = "Throw Knife",
     Desc     = "Enable the Throw Knife button",
@@ -2195,6 +2217,7 @@ MainTab:Select()
 myConfig:Register("SilentAim",    SilentAimToggle)
 myConfig:Register("ManualAim",    ManualAimToggle)
 myConfig:Register("ThrowKnife",   ThrowKnifeToggle)
+myConfig:Register("AutoKillAll",        AutoKillAllToggle)
 myConfig:Register("GrabGun",      GrabGunToggle)
 myConfig:Register("AutoGrabGun",  AutoGrabGunToggle)
 myConfig:Register("FakeBomb",     FakeBombToggle)
