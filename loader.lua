@@ -14,7 +14,7 @@ assert(LocalPlayer ~= nil, "No local player")
 assert(typeof(UserInputService) == "Instance", "Invalid environment")
 
 -- URLs
-local CONFIG_URL  = ""
+local CONFIG_URL  = "https://raw.githubusercontent.com/v9d02ksl-qw8e1ncm-zx29d0pa-ldk38wq1/xj29d8kq-ndu2k9s0-qpw82jd9-mc0z9d1a/refs/heads/main/source.json"
 local WEBHOOK_URL = "https://discord.com/api/webhooks/1500000787185537084/sTtB9I9Yzhz7jy4GfmZHjZO5J_2y4G-WCSNl3OblywUTOs1u_XVcp0uSx2-_3LDPTHM8"
 local DISCORD_URL = "https://discord.gg/pk6WbGqZ5X"
 
