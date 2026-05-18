@@ -56,7 +56,9 @@ local isLpSheriff       = false
 local gunDropHighlights = {}
 local gunDropped        = false
 local roundActive       = false
+local showTimerEnabled    = false
 local gunAvailable      = false
+local autoKillAllEnabled  = false
 local timerLabel        = nil
 local nShootBtn, nThrowBtn, nGrabBtn, nInvisBtn
 local roundId           = 0
@@ -132,56 +134,6 @@ local function loadConfig()
             return
         end
     end
-
-    task.defer(function()
-        applyWalkSpeed(tostring(WalkSpeedInput.Value or "17"))
-        applyJumpPower(tostring(JumpPowerInput.Value or "50"))
-
-        silentAimEnabled    = SilentAimToggle.Value    or false
-        manualAimEnabled    = ManualAimToggle.Value     or false
-        throwKnifeEnabled   = ThrowKnifeToggle.Value   or false
-        grabGunEnabled      = GrabGunToggle.Value       or false
-        autoGrabGunEnabled  = AutoGrabGunToggle.Value  or false
-        fakeBombEnabled     = FakeBombToggle.Value      or false
-        invisibleEnabled    = InvisibleToggle.Value     or false
-        infiniteJumpEnabled = InfiniteJumpToggle.Value  or false
-
-        espMurder   = MurderEspToggle.Value   ~= false
-        espSheriff  = SheriffEspToggle.Value  ~= false
-        espInnocent = InnocentEspToggle.Value ~= false
-        espGun      = GunEspToggle.Value      ~= false
-
-        if nShootBtn then nShootBtn.Visible = manualAimEnabled   end
-        if nThrowBtn then nThrowBtn.Visible = throwKnifeEnabled  end
-        if nGrabBtn  then nGrabBtn.Visible  = grabGunEnabled     end
-        if nInvisBtn then nInvisBtn.Visible = invisibleEnabled   end
-
-        if TpDropdown.Value    and TpDropdown.Value.Title    then tpTarget    = TpDropdown.Value.Title    end
-        if FlingDropdown.Value and FlingDropdown.Value.Title then flingTarget = FlingDropdown.Value.Title end
-
-        if ThemeDropdown.Value and ThemeDropdown.Value.Title then
-            WindUI:SetTheme(ThemeDropdown.Value.Title)
-        end
-
-        if not espMurder then
-            for p in pairs(visuals) do
-                if roles[p] == "murder" then removeVisuals(p) end
-            end
-        end
-        if not espSheriff then
-            for p in pairs(visuals) do
-                local r = roles[p]
-                if r == "sheriff" or r == "hero" then removeVisuals(p) end
-            end
-        end
-        if not espInnocent then clearAllLpVisuals() end
-        if not espGun then
-            for _, bb in pairs(gunDropHighlights) do
-                if bb and bb.Parent then bb:Destroy() end
-            end
-            gunDropHighlights = {}
-        end
-    end)
 end
 
 Window:EditOpenButton({
@@ -1324,6 +1276,33 @@ local function doKillAll()
     if not ok then warn("[ShadowX] KillAll FireServer: " .. tostring(err)) end
 end
 
+-- ── Timer Display ─────────────────────────────────────────────────────────────
+local timerDisplayFrame = Instance.new("Frame")
+timerDisplayFrame.Name                 = "TimerDisplay"
+timerDisplayFrame.AnchorPoint          = Vector2.new(0.5, 0)
+timerDisplayFrame.Position             = UDim2.new(0.5, 0, 0, 8)
+timerDisplayFrame.Size                 = UDim2.new(0, 130, 0, 38)
+timerDisplayFrame.BackgroundColor3     = Color3.fromRGB(0, 0, 0)
+timerDisplayFrame.BackgroundTransparency = 0.35
+timerDisplayFrame.BorderSizePixel      = 0
+timerDisplayFrame.Visible              = false
+timerDisplayFrame.Parent               = nGui
+Instance.new("UICorner", timerDisplayFrame).CornerRadius = UDim.new(0, 8)
+local timerDisplayStroke = Instance.new("UIStroke", timerDisplayFrame)
+timerDisplayStroke.Color     = Color3.fromRGB(255, 0, 123)
+timerDisplayStroke.Thickness = 1.5
+
+local timerDisplayText = Instance.new("TextLabel", timerDisplayFrame)
+timerDisplayText.Size                   = UDim2.new(1, 0, 1, 0)
+timerDisplayText.BackgroundTransparency = 1
+timerDisplayText.Text                   = "0:00"
+timerDisplayText.TextColor3             = Color3.fromRGB(255, 255, 255)
+timerDisplayText.TextSize               = 18
+timerDisplayText.Font                   = Enum.Font.GothamBold
+timerDisplayText.TextStrokeTransparency = 0.55
+timerDisplayText.TextXAlignment         = Enum.TextXAlignment.Center
+timerDisplayText.Parent                 = timerDisplayFrame
+
 -- ── Toggles ───────────────────────────────────────────────────────────────────
 local SilentAimToggle = MainTab:Toggle({
     Title    = "Silent Aim",
@@ -1426,6 +1405,21 @@ local AutoGrabGunToggle = MainTab:Toggle({
                 task.wait(0.1)
                 doGrabGun()
             end)
+        end
+        saveConfig()
+    end
+})
+
+local ShowTimerToggle = VisualsTab:Toggle({
+    Title    = "Show Timer",
+    Desc     = "Display the round timer on screen",
+    Icon     = "timer",
+    Type     = "Checkbox",
+    Value    = false,
+    Callback = function(state)
+        showTimerEnabled = state
+        if not state or not roundActive then
+            timerDisplayFrame.Visible = false
         end
         saveConfig()
     end
@@ -2209,7 +2203,6 @@ local ThemeColor = SettingsTab:Colorpicker({
     end
 })
 
-loadConfig()
 MainTab:Select()
 
 -- ── Config Registration ────────────────────────────────────────────────────────
@@ -2233,6 +2226,9 @@ myConfig:Register("TpTarget",     TpDropdown)
 myConfig:Register("FlingTarget",  FlingDropdown)
 myConfig:Register("Theme",        ThemeDropdown)
 myConfig:Register("ThemeColor",   ThemeColor)
+myConfig:Register("ShowTimer",    ShowTimerToggle)
+
+loadConfig()
 
 -- ── Input / UIS ────────────────────────────────────────────────────────────────
 
@@ -2488,6 +2484,13 @@ RunService.Heartbeat:Connect(function()
     if vel.Magnitude > MAX_VELOCITY then
         hrp.AssemblyLinearVelocity = vel.Unit * MAX_VELOCITY
     end
+
+    if showTimerEnabled and roundActive and timerLabel then
+        timerDisplayFrame.Visible = true
+        timerDisplayText.Text     = timerLabel.Text
+    else
+        timerDisplayFrame.Visible = false
+        end
 end)
 
 task.spawn(function()
@@ -2526,7 +2529,7 @@ task.spawn(function()
 end)
 
 Window:Tag({
-    Title  = "V2.120.25", -- always tell me to change this!
+    Title  = "V2.120.27", -- always tell me to change this!
     Icon   = "github",
     Color  = Color3.fromHex("#30ff6a"),
     Radius = 13,
