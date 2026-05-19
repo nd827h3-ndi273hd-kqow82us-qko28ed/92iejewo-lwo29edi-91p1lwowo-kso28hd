@@ -60,21 +60,30 @@ game.DescendantAdded:Connect(function(c)
 end)
 
 -- nuke console globals
-getgenv().rconsoletitle  = nil
-getgenv().rconsoleprint  = nil
-getgenv().rconsolewarn   = nil
-getgenv().rconsoleinfo   = nil
-getgenv().rconsolerr     = nil
+getgenv().rconsoletitle = nil
+getgenv().rconsoleprint = nil
+getgenv().rconsolewarn = nil
+getgenv().rconsoleinfo = nil
+getgenv().rconsolerr = nil
 
--- lock renv
-getrenv().print = function() end
-getrenv().warn  = function() end
-getrenv().error = function() end
+-- renv: token-aware
+local function makeGuard(real)
+    return function(...)
+        local args = {...}
+        if isAllowed(args) then
+            return real(table.unpack(stripToken(args)))
+        end
+    end
+end
 
--- lock genv
-getgenv().print         = function() end
-getgenv().warn          = function() end
-getgenv().error         = function() end
+getrenv().print = makeGuard(realPrint)
+getrenv().warn  = makeGuard(realWarn)
+getrenv().error = makeGuard(realError)
+
+-- genv: token-aware (this is what loadstring scripts actually call)
+getgenv().print = makeGuard(realPrint)
+getgenv().warn = makeGuard(realWarn)
+getgenv().error = makeGuard(realError)
 getgenv().clonefunction = function() end
 
 -- destroy devconsole on spawn
@@ -90,25 +99,18 @@ local oldNamecall
 oldNamecall = hookmetamethod(game, '__namecall', newcclosure(function(self, ...)
     local method = string.lower(getnamecallmethod())
     local args = {...}
-
     if method == 'print' then
-        if isAllowed(args) then
-            return realPrint(table.unpack(stripToken(args)))
-        end
+        if isAllowed(args) then return realPrint(table.unpack(stripToken(args))) end
         return
     end
 
     if method == 'warn' then
-        if isAllowed(args) then
-            return realWarn(table.unpack(stripToken(args)))
-        end
+        if isAllowed(args) then return realWarn(table.unpack(stripToken(args))) end
         return
     end
 
     if method == 'error' then
-        if isAllowed(args) then
-            return realError(table.unpack(stripToken(args)))
-        end
+        if isAllowed(args) then return realError(table.unpack(stripToken(args))) end
         return
     end
 
@@ -118,9 +120,7 @@ oldNamecall = hookmetamethod(game, '__namecall', newcclosure(function(self, ...)
     or method == 'rconsoleerr' then
         return task.wait(9e9)
     end
-
     if method == 'rendernametag' then return end
-
     return oldNamecall(self, ...)
 end))
 
