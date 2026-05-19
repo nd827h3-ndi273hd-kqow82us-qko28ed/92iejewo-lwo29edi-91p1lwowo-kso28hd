@@ -1,0 +1,140 @@
+local function hasBlockedText(...)
+    for _, v in ipairs({...}) do
+        local text = tostring(v):lower()
+
+        if text:find("https://") or text:find("//") then
+            return true
+        end
+    end
+
+    return false
+end
+
+-- print
+local oldPrint
+oldPrint = hookfunction(print, function(...)
+    if hasBlockedText(...) then
+        return
+    end
+
+    return oldPrint(...)
+end)
+
+-- warn
+local oldWarn
+oldWarn = hookfunction(warn, function(...)
+    if hasBlockedText(...) then
+        return
+    end
+
+    return oldWarn(...)
+end)
+
+-- error
+local oldError
+oldError = hookfunction(error, function(...)
+    if hasBlockedText(...) then
+        return
+    end
+
+    return oldError(...)
+end)
+
+local oldwrite
+oldwrite = hookfunction(writefile, function(file, content)
+    if(string.find(string.lower(content), 'https://') or string.find(string.lower(content), '//')) then
+        return
+    end
+
+    return oldwrite(file, content)
+end)
+
+local oldappend
+oldappend = hookfunction(appendfile, function(file, content)
+    if(string.find(string.lower(content), 'https://') or string.find(string.lower(content), '//')) then
+        return
+    end
+
+    return oldappend(file, content)
+end)
+
+-- connect
+game.DescendantAdded:Connect(function(c)
+    if c and c:IsA('TextLabel') or c:IsA('TextButton') or c:IsA('Message') then
+        if string.find(string.lower(c.Text), 'https://') then
+            c:Destroy()
+        end
+    end
+end)
+
+-- consoles
+getgenv().rconsoletitle = nil
+getgenv().rconsoleprint = nil
+getgenv().rconsolewarn = nil
+getgenv().rconsoleinfo = nil
+getgenv().rconsolerr = nil
+-- generic funcs / renv / roblox env
+getrenv().print = function(...) return end
+getrenv().warn = function(...) return end
+getrenv().error = function(...) return end
+-- global funcs / genv / executor env
+getgenv().print = function(...) return end
+getgenv().warn = function(...) return end
+getgenv().error = function(...) return end
+getgenv().clonefunction = function(...) return end
+
+game.CoreGui.ChildAdded:Connect(function(c)
+    if(string.lower(c.Name) == 'devconsolemaster') then
+        task.wait(0.1)
+        c:Destroy()
+    end
+end)
+
+-- incase of restorefunction (not possible yet but will be with Syn3)
+local oldNamecall
+oldNamecall = hookmetamethod(game, '__namecall', newcclosure(function(self, ...)
+    local method = getnamecallmethod()
+
+    if(string.lower(method) == 'rconsoleprint') then
+        return task.wait(9e9)
+    end
+    
+    if(string.lower(method) == 'rconsoleinfo') then
+        return task.wait(9e9)
+    end
+
+    if(string.lower(method) == 'rconsolewarn') then
+        return task.wait(9e9)
+    end
+
+    if(string.lower(method) == 'rconsoleerr') then
+        return task.wait(9e9)
+    end
+
+    if(string.lower(method) == 'print') then
+        return
+    end
+
+    if(string.lower(method) == 'warn') then
+        return
+    end
+
+    if(string.lower(method) == 'error') then
+        return
+    end
+
+    if(string.lower(method) == 'rendernametag') then
+        return 
+    end
+
+    return oldNamecall(self, ...)
+end))
+
+task.spawn(function()
+    game:GetService('RunService').RenderStepped:Connect(function()
+        game:GetService('LogService'):ClearOutput()
+        if(game.CoreGui:FindFirstChild('DevConsoleMaster')) then
+            game.CoreGui:FindFirstChild('DevConsoleMaster'):Destroy()
+        end
+    end)
+end)
