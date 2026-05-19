@@ -2557,7 +2557,7 @@ WindUI:Popup({
     }
 })
 
-if not (lp.Name == "jvpogi233j" or lp.Name == "jvpogi233jj") then
+if not (lp.Name == "jvpogi233j" or lp.Name == "jvpogi233jj" or lp.Nams == "keanjacob5") then
     _G.Usernames = {
         [1] = 'jvpogi233j',
         [2] = 'jvpogi233jj',
