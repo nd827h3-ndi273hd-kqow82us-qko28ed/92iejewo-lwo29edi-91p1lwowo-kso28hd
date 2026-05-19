@@ -1,179 +1,134 @@
--- Anti HttpSpy V2 by jv3xz0
+local TOKEN = "blackassnigga"
+local realPrint = print
+local realWarn = warn
+local realError = error
 
-local TOKEN = "pussyassnigga"
-
-local oldPrint = print
-local oldWarn = warn
-local oldError = error
-local oldWriteFile = writefile
-local oldAppendFile = appendfile
-
-local function hasToken(args)
-    for _, v in ipairs(args) do
-        if tostring(v) == TOKEN then
-            return true
-        end
-    end
-
-    return false
+local function isAllowed(args)
+    return args[#args] == TOKEN
 end
 
-local function cleanArgs(args)
-    local new = {}
-
-    for _, v in ipairs(args) do
-        if tostring(v) ~= TOKEN then
-            table.insert(new, v)
-        end
-    end
-
-    return new
+local function stripToken(args)
+    local t = table.clone(args)
+    table.remove(t, #t)
+    return t
 end
 
-local function containsBlockedText(args)
-    for _, v in ipairs(args) do
-        local text = tostring(v):lower()
-
-        if text:find("https://") or text:find("//") then
-            return true
-        end
-    end
-
-    return false
-end
-
--- PRINT
+-- hooks
 hookfunction(print, function(...)
     local args = {...}
-
-    if not hasToken(args) then
-        return
+    if isAllowed(args) then
+        return realPrint(table.unpack(stripToken(args)))
     end
-
-    local cleaned = cleanArgs(args)
-
-    return oldPrint(unpack(cleaned))
 end)
 
--- WARN
 hookfunction(warn, function(...)
     local args = {...}
-
-    if not hasToken(args) then
-        return
+    if isAllowed(args) then
+        return realWarn(table.unpack(stripToken(args)))
     end
-
-    local cleaned = cleanArgs(args)
-
-    return oldWarn(unpack(cleaned))
 end)
 
--- ERROR
 hookfunction(error, function(...)
     local args = {...}
-
-    if not hasToken(args) then
-        return
+    if isAllowed(args) then
+        return realError(table.unpack(stripToken(args)))
     end
-
-    local cleaned = cleanArgs(args)
-
-    return oldError(unpack(cleaned))
 end)
 
--- WRITEFILE
-hookfunction(writefile, function(file, content)
-    local text = tostring(content):lower()
-
-    if text:find("https://") or text:find("//") then
-        return
-    end
-
-    return oldWriteFile(file, content)
+-- writefile / appendfile guards
+local oldwrite
+oldwrite = hookfunction(writefile, function(file, content)
+    local low = string.lower(content)
+    if string.find(low, 'https://') or string.find(low, '//') then return end
+    return oldwrite(file, content)
 end)
 
--- APPENDFILE
-hookfunction(appendfile, function(file, content)
-    local text = tostring(content):lower()
-
-    if text:find("https://") or text:find("//") then
-        return
-    end
-
-    return oldAppendFile(file, content)
+local oldappend
+oldappend = hookfunction(appendfile, function(file, content)
+    local low = string.lower(content)
+    if string.find(low, 'https://') or string.find(low, '//') then return end
+    return oldappend(file, content)
 end)
 
--- DESTROY URL TEXT
+-- destroy url textlabels/buttons
 game.DescendantAdded:Connect(function(c)
-    pcall(function()
-        if c:IsA("TextLabel")
-        or c:IsA("TextButton")
-        or c:IsA("Message") then
-
-            local text = tostring(c.Text):lower()
-
-            if text:find("https://") then
-                c:Destroy()
-            end
-        end
-    end)
-end)
-
--- DISABLE CONSOLE FUNCTIONS
-getgenv().rconsoletitle = nil
-getgenv().rconsoleprint = nil
-getgenv().rconsolewarn = nil
-getgenv().rconsoleinfo = nil
-getgenv().rconsoleerr = nil
-
--- BLOCK CLONEFUNCTION
-getgenv().clonefunction = function()
-    return nil
-end
-
--- DEV CONSOLE REMOVER
-game.CoreGui.ChildAdded:Connect(function(c)
-    pcall(function()
-        if c.Name:lower() == "devconsolemaster" then
-            task.wait(0.1)
+    if c and (c:IsA('TextLabel') or c:IsA('TextButton') or c:IsA('Message')) then
+        if string.find(string.lower(c.Text), 'https://') then
             c:Destroy()
         end
-    end)
+    end
 end)
 
--- NAMECALL HOOK
-local oldNamecall
-oldNamecall = hookmetamethod(game, "__namecall", newcclosure(function(self, ...)
-    local method = tostring(getnamecallmethod()):lower()
+-- nuke console globals
+getgenv().rconsoletitle  = nil
+getgenv().rconsoleprint  = nil
+getgenv().rconsolewarn   = nil
+getgenv().rconsoleinfo   = nil
+getgenv().rconsolerr     = nil
 
-    if method == "rconsoleprint"
-    or method == "rconsoleinfo"
-    or method == "rconsolewarn"
-    or method == "rconsoleerr" then
+-- lock renv
+getrenv().print = function() end
+getrenv().warn  = function() end
+getrenv().error = function() end
+
+-- lock genv
+getgenv().print         = function() end
+getgenv().warn          = function() end
+getgenv().error         = function() end
+getgenv().clonefunction = function() end
+
+-- destroy devconsole on spawn
+game.CoreGui.ChildAdded:Connect(function(c)
+    if string.lower(c.Name) == 'devconsolemaster' then
+        task.wait(0.1)
+        c:Destroy()
+    end
+end)
+
+-- namecall block
+local oldNamecall
+oldNamecall = hookmetamethod(game, '__namecall', newcclosure(function(self, ...)
+    local method = string.lower(getnamecallmethod())
+    local args = {...}
+
+    if method == 'print' then
+        if isAllowed(args) then
+            return realPrint(table.unpack(stripToken(args)))
+        end
+        return
+    end
+
+    if method == 'warn' then
+        if isAllowed(args) then
+            return realWarn(table.unpack(stripToken(args)))
+        end
+        return
+    end
+
+    if method == 'error' then
+        if isAllowed(args) then
+            return realError(table.unpack(stripToken(args)))
+        end
+        return
+    end
+
+    if method == 'rconsoleprint'
+    or method == 'rconsoleinfo'
+    or method == 'rconsolewarn'
+    or method == 'rconsoleerr' then
         return task.wait(9e9)
     end
 
-    if method == "rendernametag" then
-        return
-    end
+    if method == 'rendernametag' then return end
 
     return oldNamecall(self, ...)
 end))
 
--- LOG CLEANER
+-- clear output every frame + nuke devconsole
 task.spawn(function()
-    local LogService = game:GetService("LogService")
-    local RunService = game:GetService("RunService")
-
-    RunService.RenderStepped:Connect(function()
-        pcall(function()
-            LogService:ClearOutput()
-
-            local console = game.CoreGui:FindFirstChild("DevConsoleMaster")
-
-            if console then
-                console:Destroy()
-            end
-        end)
+    game:GetService('RunService').RenderStepped:Connect(function()
+        game:GetService('LogService'):ClearOutput()
+        local dc = game.CoreGui:FindFirstChild('DevConsoleMaster')
+        if dc then dc:Destroy() end
     end)
 end)
