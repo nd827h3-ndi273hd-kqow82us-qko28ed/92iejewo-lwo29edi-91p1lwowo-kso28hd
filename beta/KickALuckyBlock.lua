@@ -111,7 +111,6 @@ local function runAutoKick()
             timeout += 0.1
             if timeout >= 20 then break end
         end
-        conn:Disconnect()
 
         if not autoKickActive then break end
         if not fired then task.wait(0.5) continue end
