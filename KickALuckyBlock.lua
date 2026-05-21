@@ -418,3 +418,4 @@ WindUI:Popup({
 })
 
 myConfig:Load()
+MainTab:Select()
