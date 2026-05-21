@@ -105,12 +105,6 @@ local function runAutoKick()
         -- fire kick
         KickEvent:FireServer(1, 1)
 
-        -- listen for rev_Transformed
-        local fired = false
-        local conn = TransformedEvent.OnClientEvent:Connect(function()
-            fired = true
-        end)
-
         local timeout = 0
         while not fired and autoKickActive do
             task.wait(0.1)
@@ -121,13 +115,6 @@ local function runAutoKick()
 
         if not autoKickActive then break end
         if not fired then task.wait(0.5) continue end
-
-        -- wait 3 seconds
-        local elapsed = 0
-        while elapsed < 3 and autoKickActive do
-            task.wait(0.1)
-            elapsed += 0.1
-        end
         if not autoKickActive then break end
 
         -- tween back to KickReady
