@@ -57,9 +57,12 @@ local Network = RS:WaitForChild("Shared"):WaitForChild("Packages"):WaitForChild(
 local KickEvent = Network:WaitForChild("rev_KickEvent")
 local TransformedEvent = Network:WaitForChild("rev_Transformed")
 
--- auto kick state
+-- state
 local autoKickActive = false
 local kickThread = nil
+local tweenSpeed = 1.5
+local godmodeEnabled = false
+local godmodeInitialized = false
 
 local function stopAutoKick()
     autoKickActive = false
@@ -119,9 +122,9 @@ local function runAutoKick()
         if not autoKickActive then break end
         if not fired then task.wait(0.5) continue end
 
-        -- wait 4 seconds
+        -- wait 3 seconds
         local elapsed = 0
-        while elapsed < 4 and autoKickActive do
+        while elapsed < 3 and autoKickActive do
             task.wait(0.1)
             elapsed += 0.1
         end
@@ -134,14 +137,14 @@ local function runAutoKick()
         if hrp and kickReady then
             local tween = TweenService:Create(
                 hrp,
-                TweenInfo.new(1.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+                TweenInfo.new(tweenSpeed, Enum.EasingStyle.Sine, Enum.EasingDirection.Out),
                 { CFrame = CFrame.new(kickReady.Position) }
             )
             tween:Play()
 
             -- wait for tween with cancel support
             local tw = 0
-            while tw < 1.5 and autoKickActive do
+            while tw < tweenSpeed and autoKickActive do
                 task.wait(0.1)
                 tw += 0.1
             end
@@ -150,6 +153,72 @@ local function runAutoKick()
 
         task.wait(0.2)
     end
+end
+
+local function initGodmode()
+    local ok, initErr = pcall(function()
+        local character = lp.Character or lp.CharacterAdded:Wait()
+        local humanoid = character:WaitForChild("Humanoid")
+
+        local oldNamecall
+        oldNamecall = hookmetamethod(game, "__namecall", function(self, ...)
+            local method = getnamecallmethod()
+            if godmodeEnabled and method == "TakeDamage" and self == humanoid then
+                return nil
+            end
+            return oldNamecall(self, ...)
+        end)
+
+        local oldIndex
+        oldIndex = hookmetamethod(game, "__newindex", function(self, property, value)
+            if godmodeEnabled and self == humanoid then
+                if property == "Health" and value < humanoid.Health then
+                    return nil
+                end
+            end
+            return oldIndex(self, property, value)
+        end)
+
+        local function connectHumanoid(hum)
+            hum.HealthChanged:Connect(function(health)
+                if godmodeEnabled and health < hum.MaxHealth then
+                    pcall(function() hum.Health = hum.MaxHealth end)
+                end
+            end)
+
+            hum.Died:Connect(function()
+                if godmodeEnabled then
+                    pcall(function()
+                        hum.Health = hum.MaxHealth
+                        task.wait(0.1)
+                        character.Parent = workspace
+                    end)
+                end
+            end)
+        end
+
+        connectHumanoid(humanoid)
+
+        lp.CharacterAdded:Connect(function(newCharacter)
+            pcall(function()
+                character = newCharacter
+                humanoid = newCharacter:WaitForChild("Humanoid")
+                connectHumanoid(humanoid)
+            end)
+        end)
+
+        for _, v in pairs(character:GetDescendants()) do
+            if v:IsA("Script") or v:IsA("LocalScript") then
+                pcall(function() v.Disabled = true end)
+            end
+        end
+    end)
+
+    if not ok then
+        WindUI:Notify({ Title = "God Mode", Content = "Initialization failed.", Duration = 3, Icon = "x" })
+        return false
+    end
+    return true
 end
 
 -- main tab
@@ -172,6 +241,45 @@ local AutoKickToggle = MainTab:Toggle({
         else
             stopAutoKick()
             WindUI:Notify({ Title = "Auto Kick", Content = "Auto Kick is OFF.", Duration = 3, Icon = "x" })
+        end
+        myConfig:Save()
+    end
+})
+
+local TweenSpeedSlider = MainTab:Slider({
+    Title = "Tween Speed",
+    Desc = "How fast it tweens back to KickReady",
+    Step = 0.1,
+    Value = {
+        Min = 0.5,
+        Max = 5,
+        Default = 1.5,
+    },
+    Callback = function(value)
+        tweenSpeed = value
+        myConfig:Save()
+    end
+})
+
+local GodModeToggle = MainTab:Toggle({
+    Title = "God Mode",
+    Desc = "Makes you invincible",
+    Icon = "shield",
+    Type = "Checkbox",
+    Value = false,
+    Callback = function(state)
+        if state and not godmodeInitialized then
+            godmodeInitialized = initGodmode()
+            if not godmodeInitialized then
+                -- init failed, leave toggle state as-is
+                return
+            end
+        end
+        godmodeEnabled = state
+        if state then
+            WindUI:Notify({ Title = "God Mode", Content = "God Mode is ON.", Duration = 3, Icon = "shield" })
+        else
+            WindUI:Notify({ Title = "God Mode", Content = "God Mode is OFF.", Duration = 3, Icon = "x" })
         end
         myConfig:Save()
     end
@@ -382,6 +490,8 @@ SettingsTab:Button({
 myConfig:Register("AutoKick", AutoKickToggle)
 myConfig:Register("Theme", ThemeDropdown)
 myConfig:Register("ThemeColor", ThemeColor)
+myConfig:Register("GodMode", GodModeToggle)
+myConfig:Register("TweenSpeed", TweenSpeedSlider)
 
 Window:Tag({
     Title = "V1.0.0",
