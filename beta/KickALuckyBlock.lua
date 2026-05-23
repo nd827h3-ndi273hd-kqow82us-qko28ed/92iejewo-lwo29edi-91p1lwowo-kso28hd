@@ -72,6 +72,39 @@ local function stopAutoKick()
     end
 end
 
+local function waitForRootPartStill()
+    local waves = workspace:FindFirstChild("Waves")
+    if not waves then return false end
+
+    local rootPart
+    local deadline = tick() + 5
+    while tick() < deadline and autoKickActive do
+        for _, m in pairs(waves:GetChildren()) do
+            local rp = m:FindFirstChild("RootPart")
+            if rp then rootPart = rp break end
+        end
+        if rootPart then break end
+        task.wait(0.05)
+    end
+
+    if not rootPart then return false end
+
+    local lastCF = rootPart.CFrame
+    local stable = 0
+    while autoKickActive do
+        task.wait(0.05)
+        local cur = rootPart.CFrame
+        if cur == lastCF then
+            stable += 0.05
+            if stable >= 0.1 then return true end
+        else
+            stable = 0
+            lastCF = cur
+        end
+    end
+    return false
+end
+
 local function runAutoKick()
     local c = lp.Character
     if not c then
@@ -105,15 +138,11 @@ local function runAutoKick()
         -- fire kick
         KickEvent:FireServer(1, 1)
 
-        local timeout = 0
-        while not fired and autoKickActive do
-            task.wait(0.1)
-            timeout += 0.1
-            if timeout >= 20 then break end
+        if not waitForRootPartStill() then
+            if not autoKickActive then break end
+            task.wait(0.5)
+            continue
         end
-
-        if not autoKickActive then break end
-        if not fired then task.wait(0.5) continue end
         if not autoKickActive then break end
 
         -- tween back to KickReady
